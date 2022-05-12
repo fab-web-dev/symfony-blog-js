@@ -4,163 +4,309 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
     <title>Document</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
 </head>
 <body>
-
- <div class='container'>
-    <h1>
-        Blog en JS
-    </h1>
+    <div class="container">
+        <h1>Blog en JS</h1>
         <nav>
-            <button id="button_post"> Articles</button>
-            <button id="button_category"> Catégories</button>
-            <button id="button_user"> Users</button>
+            <button id="button_posts">Articles</button>
+            <button id="button_categories">Catégories</button>
+            <button id="button_users" style="display: none">Utilisateurs</button>
+            <button id="button_login">Login</button>
+            <button id="button_logout" style="display: none">Logout</button>
         </nav>
-        <div id="loader" style="display: none"><img src='tintin.gif' alt=""></div>
+        <nav id="nav_cat"></nav>
+        <div id="loader" style="display: none"><img src="tintin.gif" alt=""></div>
         <div id="root"></div>
     </div>
- 
- 
- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
-<script>
-    window.onload = function () {
 
-        function createNode(element) {
-        return document.createElement(element)
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+
+    <script>
+        window.onload = function () {
+
+            function createNode(element) {
+                return document.createElement(element)
+            }
+
+            function append(parent, el) {
+                return parent.appendChild(el)
+            }
+
+            const api = 'http://localhost:8000'
+
+            const root = document.getElementById('root')
+            const nav_cat = document.getElementById('nav_cat')
+            const loader = document.getElementById('loader')
+
+            token = localStorage.getItem('token')
+            
+            // Si le user est connecté
+            if (token && token != 'undefined') {
+                document.getElementById('button_users').style.display = "inline"
+                document.getElementById('button_login').style.display = "none"
+                document.getElementById('button_logout').style.display = "inline"
+            }
+
+            // Création nav avec les catégories
+            console.log('BEGIN NAV CATEGORIES')
+
+            fetch(api + '/api/categories')
+            .then (response => {
+                return response.json()
+            })
+            .then (data => {
+                console.log('Data = ' , data)
+                let categories = data['hydra:member']
+                return categories.map(function (category) {
+                    let a = createNode('a')
+                    append(nav_cat, a)
+                    a.innerHTML = `${category.name}`
+                    a.href = api + `/api/categories/${category.id}`
+                    a.classList.add('btn','btn-primary','m-1')
+
+                    a.addEventListener('click', function (event) {
+                        loader.style.display = 'block'
+                        event.preventDefault()
+                        fetch(a.href)
+                        .then (response => {
+                            return response.json()
+                        })
+                        .then (data => {
+                            console.log('Data = ' , data)
+                            root.innerHTML = ''
+                            h2 = createNode('h2')
+                            append(root, h2)
+                            h2.innerHTML = `Catégorie = ${category.name}`
+                            data.posts.map(function (post) {
+                                console.log('Post = ' , post)
+                                
+                                fetch(api + post)
+                                .then (response => {
+                                    return response.json()
+                                })
+                                .then (post => {
+                                    console.log('Post = ' , post)
+                                    let h3 = createNode('h3')
+                                    append(root, h3)
+                                    h3.innerHTML = `${post.title}`
+                                    let div = createNode('div')
+                                    append(root, div)
+                                    div.innerHTML = `${post.createdAt}`
+                                    let img = createNode('img')
+                                    append(root, img)
+                                    img.src = `${post.image}`
+                                    div = createNode('div')
+                                    append(root, div)
+                                    div.innerHTML = `${post.content}`
+
+                                })
+                            })
+                            loader.style.display = 'none'
+                        })
+                    })
+                })
+                
+            })
+
+            console.log('END NAV CATEGORIES')            
+
+
+            document.getElementById("button_posts").addEventListener("click", function () {
+                console.log('BEGIN POSTS')
+
+                root.innerHTML = ''
+                loader.style.display = 'block'
+
+                fetch(api + '/api/posts')
+
+                .then (response => {
+                    console.log()
+                    console.log('Response = ' , response)
+                    return response.json()
+                })
+                
+                .then (data => {
+                    console.log('Data = ' , data)
+                    let posts = data['hydra:member']
+                    console.log('Posts = ' , posts)
+                    return posts.map(function (post) {
+                        console.log('Post = ' , post)
+
+                        //let element = document.createElement('h2')
+                        //document.getElementById("root").appendChild(element)
+                        //element.innerHTML = `${post.slug}`
+
+                        let h2 = createNode('h2')
+                        append(root, h2)
+                        h2.innerHTML = `${post.title}`
+
+                        let div = createNode('div')
+                        append(root, div)
+                        div.innerHTML = `${post.createdAt}`
+
+                        let img = createNode('img')
+                        append(root, img)
+                        img.src = `${post.image}`
+
+                        div = createNode('div')
+                        append(root, div)
+                        div.innerHTML = `${post.content.substring(0, 1000)}...`
+
+                        loader.style.display = 'none'
+                    })
+                })
+
+                console.log('END POSTS')
+            })
+
+            document.getElementById("button_categories").addEventListener("click", function () {
+                console.log('BEGIN CATEGORIES')
+
+                root.innerHTML = ''
+                loader.style.display = 'block'
+
+                fetch(api + '/api/categories')
+
+                .then (response => {
+                    console.log()
+                    console.log('Response = ' , response)
+                    return response.json()
+                })
+                
+                .then (data => {
+                    console.log('Data = ' , data)
+                    let categories = data['hydra:member']
+                    console.log('Categories = ' , categories)
+                    return categories.map(function (category) {
+                        console.log('Category = ' , category)
+
+                        let h2 = createNode('h2')
+                        append(root, h2)
+                        h2.innerHTML = `${category.name}`
+
+                        let div = createNode('div')
+                        append(root, div)
+                        div.innerHTML = `${category.id} - ${category.slug}`
+                    
+                        loader.style.display = 'none'
+                    })
+                    
+                })
+
+                console.log('END CATEGORIES')
+            })
+
+            document.getElementById("button_users").addEventListener("click", function () {
+                console.log('BEGIN USERS')
+
+                root.innerHTML = ''
+                loader.style.display = 'block'
+
+                token = localStorage.getItem('token')
+                console.log("Token = ", token)
+
+                fetch(api + '/api/users', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'authorization': 'Bearer ' + token
+                    }
+                })
+
+                .then (response => {
+                    console.log()
+                    console.log('Response = ' , response)
+                    return response.json()
+                })
+                
+                .then (data => {
+                    console.log('Data = ' , data)
+                    let users = data['hydra:member']
+                    console.log('Users = ' , users)
+                    return users.map(function (user) {
+                        console.log('User = ' , user)
+
+                        let h2 = createNode('h2')
+                        append(root, h2)
+                        h2.innerHTML = `${user.email}`
+
+                        let div = createNode('div')
+                        append(root, div)
+                        div.innerHTML = `Roles = ${user.roles}`
+
+                        div = createNode('div')
+                        append(root, div)
+                        div.innerHTML = `${user.id} - Verified =  ${user.verified}`
+                    
+                        loader.style.display = 'none'
+                    })
+                    
+                })
+
+                console.log('END USERS')
+            })        
+
+            document.getElementById("button_login").addEventListener("click", function () {
+                console.log('BEGIN LOGIN')
+
+                root.innerHTML = ''
+
+                const email = prompt("Email")
+                const password = prompt("Password")
+
+                loader.style.display = 'block'
+
+                fetch(api + '/api/login_check', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    method: 'POST',
+                    body: JSON.stringify({
+                        'email': email,
+                        'password': password
+                    })
+                }) 
+
+                .then (response => {
+                    console.log()
+                    console.log('Response = ' , response)
+                    return response.json()
+                })
+                
+                .then (data => {
+                    console.log('Data = ' , data)
+                    localStorage.setItem('token', data.token)
+                    loader.style.display = 'none'
+
+                    if (data.token && data.token != 'undefined') {
+                        document.getElementById('button_users').style.display = "inline"
+                        document.getElementById('button_login').style.display = "none"
+                        document.getElementById('button_logout').style.display = "inline"
+                    }
+                })
+
+                console.log('END LOGIN')
+            })
+
+            document.getElementById("button_logout").addEventListener("click", function () {
+                console.log('BEGIN LOGOUT')
+
+                root.innerHTML = ''
+
+                //localStorage.setItem('token', 'toto')
+                localStorage.removeItem('token')
+
+                document.getElementById('button_users').style.display = "none"
+                document.getElementById('button_login').style.display = "inline"
+                document.getElementById('button_logout').style.display = "none"
+
+
+                console.log('END LOGOUT')
+            })
         }
-
-        function append(parent, el){
-            return parent.appendChild(el)
-        }
-        
-        const api = "http://localhost:8000/api"
-
-        const root = document.getElementById('root')
-        const loader = document.getElementById('loader')
-
-        document.getElementById("button_post").addEventListener("click", function () {
-            // console.log ("BEGIN POSTS")
-            root.innerHTML = ''
-            loader.style.display = "block"
-            fetch(api + "/posts")
-
-            .then (response => {
-                console.log()
-                console.log('Response = ' ,response )
-                return response.json()
-            })
-
-            .then (data => {
-            console.log('data = ', data )
-            let posts = data['hydra:member']
-            console.log('posts = ', posts)
-            return posts.map(function(post){
-                console.log('post = ', post)
-                // let element = document.createElement('h2')
-                // document.getElementById("root").appendChild(element)
-                // element.innerHTML = `${post.slug}`
-
-                let h2 = createNode("h2")
-                append(root, h2)
-                h2.innerHTML = `${post.title}`
-
-                let div = createNode('div')
-                append(root, div)
-                div.innerHTML = `${post.createdAt}`
-
-                let img = createNode('img')
-                append(root, img)
-                img.src = `${post.image}`
-
-                div = createNode('div')
-                append(root, div)
-                div.innerHTML = `${post.content}`
-                loader.style.display = "none"
-            })
-             })
-            
-            // console.log ("END POSTS")
-        })
-
-        document.getElementById("button_category").addEventListener("click", function () {
-            // console.log ("BEGIN CATEGORIES")
-        root.innerHTML = ''
-        loader.style.display = "block"
-
-            fetch(api + "/categories")
-
-            .then (response => {
-                console.log()
-                console.log('Response = ' ,response )
-                return response.json()
-            })
-
-            .then (data => {
-            console.log('data = ', data )
-            let categories = data['hydra:member']
-            console.log('categories = ', categories)
-            return categories.map(function(category){
-                console.log('category = ', category)
-
-                h2 = createNode("h2")
-                append(root, h2)
-                h2.innerHTML = `${category.name}`
-
-                div = createNode('div')
-                append(root, div)
-                div.innerHTML = `${category.id}`
-
-                div = createNode('div')
-                append(root, div)
-                div.innerHTML = `${category.slug}`
-                loader.style.display = "none"
-            })
-             })
-            
-            // console.log ("END CATEGORIES")
-        })
-
-        document.getElementById("button_user").addEventListener("click", function () {
-            // console.log ("BEGIN CATEGORIES")
-        root.innerHTML = ''
-        loader.style.display = "block"
-
-            fetch(api + "/users")
-
-            .then (response => {
-                console.log()
-                console.log('Response = ' ,response )
-                return response.json()
-            })
-
-            .then (data => {
-            console.log('data = ', data )
-            let users = data['hydra:member']
-            console.log('users = ', users)
-            return users.map(function(user){
-                console.log('user = ', user)
-
-                h2 = createNode("h2")
-                append(root, h2)
-                h2.innerHTML = `${user.id}`
-
-                div = createNode('div')
-                append(root, div)
-                div.innerHTML = `${user.email}`
-
-                div = createNode('div')
-                append(root, div)
-                div.innerHTML = `${user.is_verified}`
-                loader.style.display = "none"
-            })
-             })
-            
-            // console.log ("END CATEGORIES")
-        })
-
-    }
-</script>
+    </script>
 </body>
 </html>
